@@ -1746,6 +1746,9 @@ eval_intrinsic_f3 (gfc_intrinsic_op op,
   gfc_expr *result;
   eval_f f;
 
+  if (!op1 && !op2)
+    return NULL;
+
   result = reduce_binary0 (op1, op2);
   if (result != NULL)
     return eval_type_intrinsic0(op, result);

@@ -199,6 +199,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_AVX512BF16_P(x)	TARGET_ISA2_AVX512BF16_P(x)
 #define TARGET_ENQCMD	TARGET_ISA2_ENQCMD
 #define TARGET_ENQCMD_P(x) TARGET_ISA2_ENQCMD_P(x)
+#define TARGET_SERIALIZE	TARGET_ISA2_SERIALIZE
+#define TARGET_SERIALIZE_P(x) TARGET_ISA2_SERIALIZE_P(x)
+#define TARGET_TSXLDTRK	TARGET_ISA2_TSXLDTRK
+#define TARGET_TSXLDTRK_P(x) TARGET_ISA2_TSXLDTRK_P(x)
 
 #define TARGET_LP64	TARGET_ABI_64
 #define TARGET_LP64_P(x)	TARGET_ABI_64_P(x)
@@ -1321,6 +1325,13 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define SUBTARGET_FRAME_POINTER_REQUIRED 0
 #endif
 
+/* Define the shadow offset for asan. Other OS's can override in the
+   respective tm.h files.  */
+#ifndef SUBTARGET_SHADOW_OFFSET
+#define SUBTARGET_SHADOW_OFFSET	    \
+  (TARGET_LP64 ? HOST_WIDE_INT_C (0x7fff8000) : HOST_WIDE_INT_1 << 29)
+#endif
+
 /* Make sure we can access arbitrary call frames.  */
 #define SETUP_FRAME_ADDRESSES()  ix86_setup_frame_addresses ()
 
@@ -2433,9 +2444,9 @@ const wide_int_bitmask PTA_RDPID (0, HOST_WIDE_INT_1U << 6);
 const wide_int_bitmask PTA_PCONFIG (0, HOST_WIDE_INT_1U << 7);
 const wide_int_bitmask PTA_WBNOINVD (0, HOST_WIDE_INT_1U << 8);
 const wide_int_bitmask PTA_AVX512VP2INTERSECT (0, HOST_WIDE_INT_1U << 9);
-const wide_int_bitmask PTA_WAITPKG (0, HOST_WIDE_INT_1U << 9);
 const wide_int_bitmask PTA_PTWRITE (0, HOST_WIDE_INT_1U << 10);
 const wide_int_bitmask PTA_AVX512BF16 (0, HOST_WIDE_INT_1U << 11);
+const wide_int_bitmask PTA_WAITPKG (0, HOST_WIDE_INT_1U << 12);
 const wide_int_bitmask PTA_MOVDIRI(0, HOST_WIDE_INT_1U << 13);
 const wide_int_bitmask PTA_MOVDIR64B(0, HOST_WIDE_INT_1U << 14);
 
@@ -2750,6 +2761,13 @@ enum function_type
   TYPE_EXCEPTION
 };
 
+enum queued_insn_type
+{
+  TYPE_NONE = 0,
+  TYPE_ENDBR,
+  TYPE_PATCHABLE_AREA
+};
+
 struct GTY(()) machine_function {
   struct stack_local_entry *stack_locals;
   int varargs_gpr_size;
@@ -2840,8 +2858,11 @@ struct GTY(()) machine_function {
   /* Nonzero if the function places outgoing arguments on stack.  */
   BOOL_BITFIELD outgoing_args_on_stack : 1;
 
-  /* If true, ENDBR is queued at function entrance.  */
-  BOOL_BITFIELD endbr_queued_at_entrance : 1;
+  /* If true, ENDBR or patchable area is queued at function entrance.  */
+  ENUM_BITFIELD(queued_insn_type) insn_queued_at_entrance : 2;
+
+  /* If true, the function label has been emitted.  */
+  BOOL_BITFIELD function_label_emitted : 1;
 
   /* True if the function needs a stack frame.  */
   BOOL_BITFIELD stack_frame_required : 1;

@@ -698,7 +698,6 @@ proc check_profiling_available { test_what } {
 	     || [istarget avr-*-*]
 	     || [istarget bfin-*-*]
 	     || [istarget cris-*-*]
-	     || [istarget crisv32-*-*]
 	     || [istarget csky-*-elf]
 	     || [istarget fido-*-elf]
 	     || [istarget h8300-*-*]
@@ -996,6 +995,12 @@ proc check_effective_target_fgraphite {} {
     return [check_no_compiler_messages fgraphite object {
 	void foo (void) { }
     } "-O1 -fgraphite"]
+}
+
+# Return 1 if compiled with --enable-offload-targets=
+# This affects host compilation as ENABLE_OFFLOAD then evaluates to true.
+proc check_effective_target_offloading_enabled {} {
+    return [check_configured_with "--enable-offload-targets"]
 }
 
 # Return 1 if compilation with -fopenacc is error-free for trivial
@@ -2164,6 +2169,25 @@ proc check_p9vector_hw_available { } {
     }]
 }
 
+# Return 1 if the PowerPC target generates PC-relative instructions
+# automatically for targets that support PC-relative instructions.
+proc check_effective_target_powerpc_pcrel { } {
+    return [check_no_messages_and_pattern powerpc_pcrel \
+	{\mpla\M} assembly {
+	    static unsigned short s;
+	    unsigned short *p_foo (void) { return &s; }
+	} {-O2 -mcpu=future}]
+}
+
+# Return 1 if the PowerPC target generates prefixed instructions automatically
+# for targets that support prefixed instructions.
+proc check_effective_target_powerpc_prefixed_addr { } {
+    return [check_no_messages_and_pattern powerpc_prefixed_addr \
+	{\mplwz\M} assembly {
+	    unsigned int foo (unsigned int *p) { return p[0x12345]; }
+	} {-O2 -mcpu=future}]
+}
+
 # Return 1 if the target supports executing power9 modulo instructions, 0
 # otherwise.  Cache the result.
 
@@ -2204,7 +2228,7 @@ proc check_powerpc_future_hw_available { } {
 		asm ("pli %0,%1" : "+r" (e) : "n" (0x12345));
 		return (e == 0x12345);
 	    }
-	} "-mfuture"
+	} "-mcpu=future"
     }]
 }
 
@@ -2768,6 +2792,16 @@ proc check_effective_target_large_return_values { } {
     }
     return 1
 }
+# Return 1 if we support 20-bit or larger array and structure sizes
+# using default options, 0 otherwise.
+# This implies at least a 24-bit address space, as no targets have an address
+# space between 20 and 24 bits.
+
+proc check_effective_target_size24plus { } {
+    return [check_no_compiler_messages size24plus object {
+	char dummy[524289L];
+    }]
+}
 
 # Return 1 if we support 24-bit or larger array and structure sizes
 # using default options, 0 otherwise.
@@ -2827,6 +2861,24 @@ proc check_effective_target_long_neq_int { } {
 proc check_effective_target_int_eq_float { } {
     return [check_no_compiler_messages int_eq_float object {
 	int dummy[sizeof (int) >= sizeof (float) ? 1 : -1];
+    }]
+}
+
+# Return 1 if short size is equal to int size,
+# 0 otherwise.
+
+proc check_effective_target_short_eq_int { } {
+    return [check_no_compiler_messages short_eq_int object {
+	int dummy[sizeof (short) == sizeof (int) ? 1 : -1];
+    }]
+}
+
+# Return 1 if pointer size is equal to short size,
+# 0 otherwise.
+
+proc check_effective_target_ptr_eq_short { } {
+    return [check_no_compiler_messages ptr_eq_short object {
+	int dummy[sizeof (void *) == sizeof (short) ? 1 : -1];
     }]
 }
 
@@ -5816,7 +5868,7 @@ proc check_effective_target_powerpc_future_ok { } {
 		asm ("pli %0,%1" : "=r" (e) : "n" (0x12345));
 		return e;
 	    }
-	} "-mfuture"]
+	} "-mcpu=future"]
     } else {
 	return 0
     }
@@ -7583,7 +7635,7 @@ proc check_effective_target_sync_int_long { } {
 	     || [istarget hppa*-*linux*]
 	     || [istarget s390*-*-*] 
 	     || [istarget powerpc*-*-*]
-	     || [istarget crisv32-*-*] || [istarget cris-*-*]
+	     || [istarget cris-*-*]
 	     || ([istarget sparc*-*-*] && [check_effective_target_sparc_v9])
 	     || ([istarget arc*-*-*] && [check_effective_target_arc_atomic])
 	     || [check_effective_target_mips_llsc] }}]
@@ -7606,7 +7658,7 @@ proc check_effective_target_sync_char_short { } {
 	     || [istarget hppa*-*linux*]
 	     || [istarget s390*-*-*] 
 	     || [istarget powerpc*-*-*]
-	     || [istarget crisv32-*-*] || [istarget cris-*-*]
+	     || [istarget cris-*-*]
 	     || ([istarget sparc*-*-*] && [check_effective_target_sparc_v9])
 	     || ([istarget arc*-*-*] && [check_effective_target_arc_atomic])
 	     || [check_effective_target_mips_llsc] }}]
@@ -7763,6 +7815,7 @@ proc is-effective-target { arg } {
 	  "named_sections" { set selected [check_named_sections_available] }
 	  "gc_sections"    { set selected [check_gc_sections_available] }
 	  "cxa_atexit"     { set selected [check_cxa_atexit_available] }
+	  "powerpc_future_hw" { set selected [check_powerpc_future_hw_available] }
 	  default          { error "unknown effective target keyword `$arg'" }
 	}
     }
@@ -9134,6 +9187,14 @@ proc check_effective_target_c++2a { } {
     return [check_effective_target_c++2a_only]
 }
 
+proc check_effective_target_c++20_only { } {
+    return [check_effective_target_c++2a_only]
+}
+
+proc check_effective_target_c++20 { } {
+    return [check_effective_target_c++2a]
+}
+
 # Check for C++ Concepts support, i.e. -fconcepts flag.
 proc check_effective_target_concepts { } {
     if [check_effective_target_c++2a] {
@@ -9482,6 +9543,7 @@ proc check_effective_target_exceptions_enabled {} {
     return [check_cached_effective_target exceptions_enabled {
 	if { [check_effective_target_exceptions] } {
 	    return [check_no_compiler_messages exceptions_enabled assembly {
+		// C++
 		void foo (void)
 		{
 		    throw 1;
@@ -10225,4 +10287,37 @@ proc check_effective_target_indirect_calls { } {
         return 0
   }
   return 1
+}
+
+# Return 1 if we can use the -lgccjit option, 0 otherwise.
+
+proc check_effective_target_lgccjit { } {
+  if { [info procs jit_target_compile] == "" } then {
+    global GCC_UNDER_TEST
+    if ![info exists GCC_UNDER_TEST] {
+      set GCC_UNDER_TEST "[find_gcc]"
+    }
+    proc jit_target_compile { source dest type options } [info body gcc_target_compile]
+  }
+  return [check_no_compiler_messages lgccjit executable {
+     int main() { return 0; }
+  } "-lgccjit"]
+}
+
+# Return 1 if the MSP430 small memory model is in use.
+proc check_effective_target_msp430_small {} {
+    return [check_no_compiler_messages msp430_small assembly {
+	#if (!defined __MSP430__ || defined __MSP430X_LARGE__)
+	#error !msp430 || __MSP430X_LARGE__
+	#endif
+    } ""]
+}
+
+# Return 1 if the MSP430 large memory model is in use.
+proc check_effective_target_msp430_large {} {
+    return [check_no_compiler_messages msp430_large assembly {
+	#ifndef __MSP430X_LARGE__
+	#error __MSP430X_LARGE__
+	#endif
+    } ""]
 }

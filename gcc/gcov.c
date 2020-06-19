@@ -874,6 +874,9 @@ main (int argc, char **argv)
 	}
     }
 
+  if (!flag_use_stdout)
+    executed_summary (total_lines, total_executed);
+
   return 0;
 }
 
@@ -926,9 +929,8 @@ print_version (void)
   fprintf (stdout, "Copyright %s 2020 Free Software Foundation, Inc.\n",
 	   _("(C)"));
   fnotice (stdout,
-	   _("This is free software; see the source for copying conditions.\n"
-	     "There is NO warranty; not even for MERCHANTABILITY or \n"
-	     "FITNESS FOR A PARTICULAR PURPOSE.\n\n"));
+	   _("This is free software; see the source for copying conditions.  There is NO\n\
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"));
   exit (SUCCESS_EXIT_CODE);
 }
 
@@ -1410,17 +1412,13 @@ generate_results (const char *file_name)
     }
 
   name_map needle;
-
-  if (file_name)
-    {
-      needle.name = file_name;
-      vector<name_map>::iterator it = std::find (names.begin (), names.end (),
-						 needle);
-      if (it != names.end ())
-	file_name = sources[it->src].coverage.name;
-      else
-	file_name = canonicalize_name (file_name);
-    }
+  needle.name = file_name;
+  vector<name_map>::iterator it
+    = std::find (names.begin (), names.end (), needle);
+  if (it != names.end ())
+    file_name = sources[it->src].coverage.name;
+  else
+    file_name = canonicalize_name (file_name);
 
   gcov_intermediate_filename = get_gcov_intermediate_filename (file_name);
 
@@ -1462,7 +1460,11 @@ generate_results (const char *file_name)
       if (flag_gcov_file)
 	{
 	  if (flag_json_format)
-	    output_json_intermediate_file (json_files, src);
+	    {
+	      output_json_intermediate_file (json_files, src);
+	      if (!flag_use_stdout)
+		fnotice (stdout, "\n");
+	    }
 	  else
 	    {
 	      if (flag_use_stdout)
@@ -1509,9 +1511,6 @@ generate_results (const char *file_name)
 	    }
 	}
     }
-
-  if (!file_name)
-    executed_summary (total_lines, total_executed);
 }
 
 /* Release all memory used.  */

@@ -324,7 +324,7 @@ static bool nonnull_check_p (tree, unsigned HOST_WIDE_INT);
    ObjC is like C except that D_OBJC and D_CXX_OBJC are not set
    C++ --std=c++98: D_CONLY | D_CXX11 | D_CXX20 | D_OBJC
    C++ --std=c++11: D_CONLY | D_CXX20 | D_OBJC
-   C++ --std=c++2a: D_CONLY | D_OBJC
+   C++ --std=c++20: D_CONLY | D_OBJC
    ObjC++ is like C++ except that D_OBJC is not set
 
    If -fno-asm is used, D_ASM is added to the mask.  If
@@ -6716,6 +6716,8 @@ speculation_safe_value_resolve_params (location_t loc, tree orig_function,
       tree val2 = (*params)[1];
       if (TREE_CODE (TREE_TYPE (val2)) == ARRAY_TYPE)
 	val2 = default_conversion (val2);
+      if (error_operand_p (val2))
+	return false;
       if (!(TREE_TYPE (val) == TREE_TYPE (val2)
 	    || useless_type_conversion_p (TREE_TYPE (val), TREE_TYPE (val2))))
 	{
@@ -6901,6 +6903,7 @@ get_atomic_generic_size (location_t loc, tree function,
 {
   unsigned int n_param;
   unsigned int n_model;
+  unsigned int outputs = 0; // bitset of output parameters
   unsigned int x;
   int size_0;
   tree type_0;
@@ -6911,15 +6914,22 @@ get_atomic_generic_size (location_t loc, tree function,
     case BUILT_IN_ATOMIC_EXCHANGE:
       n_param = 4;
       n_model = 1;
+      outputs = 5;
       break;
     case BUILT_IN_ATOMIC_LOAD:
+      n_param = 3;
+      n_model = 1;
+      outputs = 2;
+      break;
     case BUILT_IN_ATOMIC_STORE:
       n_param = 3;
       n_model = 1;
+      outputs = 1;
       break;
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE:
       n_param = 6;
       n_model = 2;
+      outputs = 3;
       break;
     default:
       gcc_unreachable ();
@@ -7008,6 +7018,39 @@ get_atomic_generic_size (location_t loc, tree function,
 		    function);
 	  return 0;
 	}
+
+      {
+	auto_diagnostic_group d;
+	int quals = TYPE_QUALS (TREE_TYPE (type));
+	/* Must not write to an argument of a const-qualified type.  */
+	if (outputs & (1 << x) && quals & TYPE_QUAL_CONST)
+	  {
+	    if (c_dialect_cxx ())
+	      {
+		error_at (loc, "argument %d of %qE must not be a pointer to "
+			  "a %<const%> type", x + 1, function);
+		return 0;
+	      }
+	    else
+	      pedwarn (loc, OPT_Wincompatible_pointer_types, "argument %d "
+		       "of %qE discards %<const%> qualifier", x + 1,
+		       function);
+	  }
+	/* Only the first argument is allowed to be volatile.  */
+	if (x > 0 && quals & TYPE_QUAL_VOLATILE)
+	  {
+	    if (c_dialect_cxx ())
+	      {
+		error_at (loc, "argument %d of %qE must not be a pointer to "
+			  "a %<volatile%> type", x + 1, function);
+		return 0;
+	      }
+	    else
+	      pedwarn (loc, OPT_Wincompatible_pointer_types, "argument %d "
+		       "of %qE discards %<volatile%> qualifier", x + 1,
+		       function);
+	  }
+      }
     }
 
   /* Check memory model parameters for validity.  */
@@ -7400,7 +7443,7 @@ resolve_overloaded_builtin (location_t loc, tree function,
       {
 	tree new_function, first_param, result;
 	enum built_in_function fncode
-	  = speculation_safe_value_resolve_call (function, params);;
+	  = speculation_safe_value_resolve_call (function, params);
 
 	if (fncode == BUILT_IN_NONE)
 	  return error_mark_node;

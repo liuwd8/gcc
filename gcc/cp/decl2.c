@@ -838,7 +838,17 @@ grokfield (const cp_declarator *declarator,
       && TREE_CHAIN (init) == NULL_TREE)
     init = NULL_TREE;
 
-  value = grokdeclarator (declarator, declspecs, FIELD, init != 0, &attrlist);
+  int initialized;
+  if (init == ridpointers[(int)RID_DELETE])
+    initialized = SD_DELETED;
+  else if (init == ridpointers[(int)RID_DEFAULT])
+    initialized = SD_DEFAULTED;
+  else if (init)
+    initialized = SD_INITIALIZED;
+  else
+    initialized = SD_UNINITIALIZED;
+
+  value = grokdeclarator (declarator, declspecs, FIELD, initialized, &attrlist);
   if (! value || value == error_mark_node)
     /* friend or constructor went bad.  */
     return error_mark_node;
@@ -916,18 +926,8 @@ grokfield (const cp_declarator *declarator,
 	{
 	  if (init == ridpointers[(int)RID_DELETE])
 	    {
-	      if (friendp && decl_defined_p (value))
-		{
-		  error ("redefinition of %q#D", value);
-		  inform (DECL_SOURCE_LOCATION (value),
-			  "%q#D previously defined here", value);
-		}
-	      else
-		{
-		  DECL_DELETED_FN (value) = 1;
-		  DECL_DECLARED_INLINE_P (value) = 1;
-		  DECL_INITIAL (value) = error_mark_node;
-		}
+	      DECL_DELETED_FN (value) = 1;
+	      DECL_DECLARED_INLINE_P (value) = 1;
 	    }
 	  else if (init == ridpointers[(int)RID_DEFAULT])
 	    {
@@ -936,6 +936,9 @@ grokfield (const cp_declarator *declarator,
 		  DECL_DEFAULTED_FN (value) = 1;
 		  DECL_INITIALIZED_IN_CLASS_P (value) = 1;
 		  DECL_DECLARED_INLINE_P (value) = 1;
+		  /* grokfndecl set this to error_mark_node, but we want to
+		     leave it unset until synthesize_method.  */
+		  DECL_INITIAL (value) = NULL_TREE;
 		}
 	    }
 	  else if (TREE_CODE (init) == DEFERRED_PARSE)
@@ -1172,6 +1175,9 @@ is_late_template_attribute (tree attr, tree decl)
   if (flag_openmp
       && is_attribute_p ("omp declare simd", name))
     return true;
+
+  if (args == error_mark_node)
+    return false;
 
   /* An attribute pack is clearly dependent.  */
   if (args && PACK_EXPANSION_P (args))
@@ -2328,26 +2334,30 @@ static tree
 min_vis_r (tree *tp, int *walk_subtrees, void *data)
 {
   int *vis_p = (int *)data;
+  int this_vis = VISIBILITY_DEFAULT;
   if (! TYPE_P (*tp))
-    {
-      *walk_subtrees = 0;
-    }
+    *walk_subtrees = 0;
+  else if (typedef_variant_p (*tp))
+    /* Look through typedefs despite cp_walk_subtrees.  */
+    this_vis = type_visibility (DECL_ORIGINAL_TYPE (TYPE_NAME (*tp)));
   else if (OVERLOAD_TYPE_P (*tp)
 	   && !TREE_PUBLIC (TYPE_MAIN_DECL (*tp)))
     {
-      *vis_p = VISIBILITY_ANON;
-      return *tp;
+      this_vis = VISIBILITY_ANON;
+      *walk_subtrees = 0;
     }
-  else if (CLASS_TYPE_P (*tp)
-	   && CLASSTYPE_VISIBILITY (*tp) > *vis_p)
-    *vis_p = CLASSTYPE_VISIBILITY (*tp);
+  else if (CLASS_TYPE_P (*tp))
+    {
+      this_vis = CLASSTYPE_VISIBILITY (*tp);
+      *walk_subtrees = 0;
+    }
   else if (TREE_CODE (*tp) == ARRAY_TYPE
 	   && uses_template_parms (TYPE_DOMAIN (*tp)))
-    {
-      int evis = expr_visibility (TYPE_MAX_VALUE (TYPE_DOMAIN (*tp)));
-      if (evis > *vis_p)
-	*vis_p = evis;
-    }
+    this_vis = expr_visibility (TYPE_MAX_VALUE (TYPE_DOMAIN (*tp)));
+
+  if (this_vis > *vis_p)
+    *vis_p = this_vis;
+
   return NULL;
 }
 

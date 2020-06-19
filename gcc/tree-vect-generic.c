@@ -67,11 +67,10 @@ subparts_gt (tree type1, tree type2)
 }
 
 /* Build a constant of type TYPE, made of VALUE's bits replicated
-   every TYPE_SIZE (INNER_TYPE) bits to fit TYPE's precision.  */
+   every WIDTH bits to fit TYPE's precision.  */
 static tree
-build_replicated_const (tree type, tree inner_type, HOST_WIDE_INT value)
+build_replicated_const (tree type, unsigned int width, HOST_WIDE_INT value)
 {
-  int width = tree_to_uhwi (TYPE_SIZE (inner_type));
   int n = (TYPE_PRECISION (type) + HOST_BITS_PER_WIDE_INT - 1) 
     / HOST_BITS_PER_WIDE_INT;
   unsigned HOST_WIDE_INT low, mask;
@@ -214,13 +213,14 @@ do_plus_minus (gimple_stmt_iterator *gsi, tree word_type, tree a, tree b,
 	       tree bitpos ATTRIBUTE_UNUSED, tree bitsize ATTRIBUTE_UNUSED,
 	       enum tree_code code, tree type ATTRIBUTE_UNUSED)
 {
+  unsigned int width = vector_element_bits (TREE_TYPE (a));
   tree inner_type = TREE_TYPE (TREE_TYPE (a));
   unsigned HOST_WIDE_INT max;
   tree low_bits, high_bits, a_low, b_low, result_low, signs;
 
   max = GET_MODE_MASK (TYPE_MODE (inner_type));
-  low_bits = build_replicated_const (word_type, inner_type, max >> 1);
-  high_bits = build_replicated_const (word_type, inner_type, max & ~(max >> 1));
+  low_bits = build_replicated_const (word_type, width, max >> 1);
+  high_bits = build_replicated_const (word_type, width, max & ~(max >> 1));
 
   a = tree_vec_extract (gsi, word_type, a, bitsize, bitpos);
   b = tree_vec_extract (gsi, word_type, b, bitsize, bitpos);
@@ -247,13 +247,14 @@ do_negate (gimple_stmt_iterator *gsi, tree word_type, tree b,
 	   enum tree_code code ATTRIBUTE_UNUSED,
 	   tree type ATTRIBUTE_UNUSED)
 {
+  unsigned int width = vector_element_bits (TREE_TYPE (b));
   tree inner_type = TREE_TYPE (TREE_TYPE (b));
   HOST_WIDE_INT max;
   tree low_bits, high_bits, b_low, result_low, signs;
 
   max = GET_MODE_MASK (TYPE_MODE (inner_type));
-  low_bits = build_replicated_const (word_type, inner_type, max >> 1);
-  high_bits = build_replicated_const (word_type, inner_type, max & ~(max >> 1));
+  low_bits = build_replicated_const (word_type, width, max >> 1);
+  high_bits = build_replicated_const (word_type, width, max & ~(max >> 1));
 
   b = tree_vec_extract (gsi, word_type, b, bitsize, bitpos);
 
@@ -276,8 +277,7 @@ expand_vector_piecewise (gimple_stmt_iterator *gsi, elem_op_func f,
   tree part_width = TYPE_SIZE (inner_type);
   tree index = bitsize_int (0);
   int nunits = nunits_for_known_piecewise_op (type);
-  int delta = tree_to_uhwi (part_width)
-	      / tree_to_uhwi (TYPE_SIZE (TREE_TYPE (type)));
+  int delta = tree_to_uhwi (part_width) / vector_element_bits (type);
   int i;
   location_t loc = gimple_location (gsi_stmt (*gsi));
 
@@ -357,8 +357,7 @@ expand_vector_addition (gimple_stmt_iterator *gsi,
 			elem_op_func f, elem_op_func f_parallel,
 			tree type, tree a, tree b, enum tree_code code)
 {
-  int parts_per_word = UNITS_PER_WORD
-	  	       / tree_to_uhwi (TYPE_SIZE_UNIT (TREE_TYPE (type)));
+  int parts_per_word = BITS_PER_WORD / vector_element_bits (type);
 
   if (INTEGRAL_TYPE_P (TREE_TYPE (type))
       && parts_per_word >= 4
@@ -391,7 +390,7 @@ expand_vector_comparison (gimple_stmt_iterator *gsi, tree type, tree op0,
 						(TREE_TYPE (type)))))
 	{
 	  tree inner_type = TREE_TYPE (TREE_TYPE (op0));
-	  tree part_width = TYPE_SIZE (inner_type);
+	  tree part_width = vector_element_bits_tree (TREE_TYPE (op0));
 	  tree index = bitsize_int (0);
 	  int nunits = nunits_for_known_piecewise_op (TREE_TYPE (op0));
 	  int prec = GET_MODE_PRECISION (SCALAR_TYPE_MODE (type));
@@ -695,12 +694,14 @@ expand_vector_divmod (gimple_stmt_iterator *gsi, tree type, tree op0,
 	  if (addend == NULL_TREE
 	      && expand_vec_cond_expr_p (type, type, LT_EXPR))
 	    {
-	      tree zero, cst, cond, mask_type;
-	      gimple *stmt;
+	      tree zero, cst, mask_type, mask;
+	      gimple *stmt, *cond;
 
 	      mask_type = truth_type_for (type);
 	      zero = build_zero_cst (type);
-	      cond = build2 (LT_EXPR, mask_type, op0, zero);
+	      mask = make_ssa_name (mask_type);
+	      cond = gimple_build_assign (mask, LT_EXPR, op0, zero);
+	      gsi_insert_before (gsi, cond, GSI_SAME_STMT);
 	      tree_vector_builder vec (type, nunits, 1);
 	      for (i = 0; i < nunits; i++)
 		vec.quick_push (build_int_cst (TREE_TYPE (type),
@@ -708,8 +709,8 @@ expand_vector_divmod (gimple_stmt_iterator *gsi, tree type, tree op0,
 						<< shifts[i]) - 1));
 	      cst = vec.build ();
 	      addend = make_ssa_name (type);
-	      stmt = gimple_build_assign (addend, VEC_COND_EXPR, cond,
-					  cst, zero);
+	      stmt
+		= gimple_build_assign (addend, VEC_COND_EXPR, mask, cst, zero);
 	      gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
 	    }
 	}
@@ -945,27 +946,35 @@ expand_vector_condition (gimple_stmt_iterator *gsi)
   vec<constructor_elt, va_gc> *v;
   tree constr;
   tree inner_type = TREE_TYPE (type);
+  tree width = vector_element_bits_tree (type);
   tree cond_type = TREE_TYPE (TREE_TYPE (a));
   tree comp_inner_type = cond_type;
-  tree width = TYPE_SIZE (inner_type);
   tree index = bitsize_int (0);
   tree comp_width = width;
   tree comp_index = index;
-  int i;
   location_t loc = gimple_location (gsi_stmt (*gsi));
+  tree_code code = TREE_CODE (a);
 
-  if (!is_gimple_val (a))
+  if (code == SSA_NAME)
     {
-      gcc_assert (COMPARISON_CLASS_P (a));
-      a_is_comparison = true;
-      a1 = TREE_OPERAND (a, 0);
-      a2 = TREE_OPERAND (a, 1);
-      comp_inner_type = TREE_TYPE (TREE_TYPE (a1));
-      comp_width = TYPE_SIZE (comp_inner_type);
+      gassign *assign = dyn_cast<gassign *> (SSA_NAME_DEF_STMT (a));
+      if (assign != NULL
+	  && TREE_CODE_CLASS (gimple_assign_rhs_code (assign)) == tcc_comparison)
+	{
+	  a_is_comparison = true;
+	  a1 = gimple_assign_rhs1 (assign);
+	  a2 = gimple_assign_rhs2 (assign);
+	  code = gimple_assign_rhs_code (assign);
+	  comp_inner_type = TREE_TYPE (TREE_TYPE (a1));
+	  comp_width = vector_element_bits_tree (TREE_TYPE (a1));
+	}
     }
 
-  if (expand_vec_cond_expr_p (type, TREE_TYPE (a1), TREE_CODE (a)))
-    return;
+  if (expand_vec_cond_expr_p (type, TREE_TYPE (a1), code))
+    {
+      gcc_assert (TREE_CODE (a) == SSA_NAME || TREE_CODE (a) == VECTOR_CST);
+      return;
+    }
 
   /* Handle vector boolean types with bitmasks.  If there is a comparison
      and we can expand the comparison into the vector boolean bitmask,
@@ -988,7 +997,7 @@ expand_vector_condition (gimple_stmt_iterator *gsi)
 	  : expand_vec_cmp_expr_p (TREE_TYPE (a1), type, TREE_CODE (a))))
     {
       if (a_is_comparison)
-	a = gimplify_build2 (gsi, TREE_CODE (a), type, a1, a2);
+	a = gimplify_build2 (gsi, code, type, a1, a2);
       a1 = gimplify_build2 (gsi, BIT_AND_EXPR, type, a, b);
       a2 = gimplify_build1 (gsi, BIT_NOT_EXPR, type, a);
       a2 = gimplify_build2 (gsi, BIT_AND_EXPR, type, a2, c);
@@ -1019,7 +1028,7 @@ expand_vector_condition (gimple_stmt_iterator *gsi)
 
   int nunits = nunits_for_known_piecewise_op (type);
   vec_alloc (v, nunits);
-  for (i = 0; i < nunits; i++)
+  for (int i = 0; i < nunits; i++)
     {
       tree aa, result;
       tree bb = tree_vec_extract (gsi, inner_type, b, width, index);
@@ -1030,7 +1039,7 @@ expand_vector_condition (gimple_stmt_iterator *gsi)
 				       comp_width, comp_index);
 	  tree aa2 = tree_vec_extract (gsi, comp_inner_type, a2,
 				       comp_width, comp_index);
-	  aa = fold_build2 (TREE_CODE (a), cond_type, aa1, aa2);
+	  aa = fold_build2 (code, cond_type, aa1, aa2);
 	}
       else if (a_is_scalar_bitmask)
 	{
@@ -1334,7 +1343,7 @@ vector_element (gimple_stmt_iterator *gsi, tree vect, tree idx, tree *ptmpvec)
         }
       else
         {
-	  tree size = TYPE_SIZE (vect_elt_type);
+	  tree size = vector_element_bits_tree (vect_type);
 	  tree pos = fold_build2 (MULT_EXPR, bitsizetype, bitsize_int (index),
 				  size);
 	  return fold_build3 (BIT_FIELD_REF, vect_elt_type, vect, size, pos);
@@ -1727,19 +1736,17 @@ expand_vector_conversion (gimple_stmt_iterator *gsi)
   optab optab1 = unknown_optab;
 
   gcc_checking_assert (VECTOR_TYPE_P (ret_type) && VECTOR_TYPE_P (arg_type));
-  gcc_checking_assert (tree_fits_uhwi_p (TYPE_SIZE (TREE_TYPE (ret_type))));
-  gcc_checking_assert (tree_fits_uhwi_p (TYPE_SIZE (TREE_TYPE (arg_type))));
   if (INTEGRAL_TYPE_P (TREE_TYPE (ret_type))
       && SCALAR_FLOAT_TYPE_P (TREE_TYPE (arg_type)))
     code = FIX_TRUNC_EXPR;
   else if (INTEGRAL_TYPE_P (TREE_TYPE (arg_type))
 	   && SCALAR_FLOAT_TYPE_P (TREE_TYPE (ret_type)))
     code = FLOAT_EXPR;
-  if (tree_to_uhwi (TYPE_SIZE (TREE_TYPE (ret_type)))
-      < tree_to_uhwi (TYPE_SIZE (TREE_TYPE (arg_type))))
+  unsigned int ret_elt_bits = vector_element_bits (ret_type);
+  unsigned int arg_elt_bits = vector_element_bits (arg_type);
+  if (ret_elt_bits < arg_elt_bits)
     modifier = NARROW;
-  else if (tree_to_uhwi (TYPE_SIZE (TREE_TYPE (ret_type)))
-	   > tree_to_uhwi (TYPE_SIZE (TREE_TYPE (arg_type))))
+  else if (ret_elt_bits > arg_elt_bits)
     modifier = WIDEN;
 
   if (modifier == NONE && (code == FIX_TRUNC_EXPR || code == FLOAT_EXPR))
@@ -1902,8 +1909,7 @@ expand_vector_conversion (gimple_stmt_iterator *gsi)
 	      tree part_width = TYPE_SIZE (compute_type);
 	      tree index = bitsize_int (0);
 	      int nunits = nunits_for_known_piecewise_op (arg_type);
-	      int delta = tree_to_uhwi (part_width)
-			  / tree_to_uhwi (TYPE_SIZE (TREE_TYPE (arg_type)));
+	      int delta = tree_to_uhwi (part_width) / arg_elt_bits;
 	      int i;
 	      location_t loc = gimple_location (gsi_stmt (*gsi));
 

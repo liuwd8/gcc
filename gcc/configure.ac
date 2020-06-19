@@ -385,6 +385,7 @@ AC_SUBST(PICFLAG_FOR_TARGET)
 # -------------------------
 
 AC_USE_SYSTEM_EXTENSIONS
+
 AC_PROG_CPP
 AC_C_INLINE
 
@@ -979,12 +980,13 @@ AC_ARG_WITH(documentation-root-url,
     [case "$withval" in
       yes) AC_MSG_ERROR([documentation root URL not specified]) ;;
       no)  AC_MSG_ERROR([documentation root URL not specified]) ;;
-      *)   DOCUMENTATION_ROOT_URL="$withval"
-	   ;;
+      */)  DOCUMENTATION_ROOT_URL="$withval" ;;
+      *)   AC_MSG_ERROR([documentation root URL does not end with /]) ;;
      esac],
      DOCUMENTATION_ROOT_URL="https://gcc.gnu.org/onlinedocs/"
 )
-AC_SUBST(DOCUMENTATION_ROOT_URL)
+AC_DEFINE_UNQUOTED(DOCUMENTATION_ROOT_URL,"$DOCUMENTATION_ROOT_URL",
+	[Define to the root for documentation URLs.])
 
 # Allow overriding the default URL for GCC changes
 AC_ARG_WITH(changes-root-url,
@@ -993,12 +995,13 @@ AC_ARG_WITH(changes-root-url,
     [case "$withval" in
       yes) AC_MSG_ERROR([changes root URL not specified]) ;;
       no)  AC_MSG_ERROR([changes root URL not specified]) ;;
-      *)   CHANGES_ROOT_URL="$withval"
-	   ;;
+      */)  CHANGES_ROOT_URL="$withval" ;;
+      *)   AC_MSG_ERROR([changes root URL does not end with /]) ;;
      esac],
      CHANGES_ROOT_URL="https://gcc.gnu.org/"
 )
-AC_SUBST(CHANGES_ROOT_URL)
+AC_DEFINE_UNQUOTED(CHANGES_ROOT_URL,"$CHANGES_ROOT_URL",
+	[Define to the root for URLs about GCC changes.])
 
 # Sanity check enable_languages in case someone does not run the toplevel
 # configure # script.
@@ -1337,6 +1340,8 @@ AC_SUBST(ZSTD_INCLUDE)
 AC_SUBST(ZSTD_LIB)
 ZSTD_CPPFLAGS=
 ZSTD_LDFLAGS=
+AC_SUBST(ZSTD_CPPFLAGS)
+AC_SUBST(ZSTD_LDFLAGS)
 AC_ARG_WITH(zstd,
 	[AS_HELP_STRING([--with-zstd=PATH],
 		[specify prefix directory for installed zstd library.
@@ -3542,6 +3547,11 @@ changequote(,)dnl
     fi
     case "$target" in
       i[34567]86-*-*)
+	if test x$on_solaris = xyes; then
+	  case $gas_flag in
+	    yes) tls_as_opt="$tls_as_opt --32" ;;
+	  esac
+	fi
 	conftest_s="$conftest_s
 foo:	.long	25
 	.text
@@ -5096,6 +5106,11 @@ configured with --enable-newlib-nano-formatted-io.])
       [	vl %v24,0(%r15),3 ],,
       [AC_DEFINE(HAVE_AS_VECTOR_LOADSTORE_ALIGNMENT_HINTS, 1,
 	  [Define if your assembler supports vl/vst/vlm/vstm with an optional alignment hint argument.])])
+    gcc_GAS_CHECK_FEATURE([vector load/store alignment hints on z13],
+      gcc_cv_as_s390_vector_loadstore_alignment_hints_on_z13,, [-mzarch -march=z13],
+      [	vl %v24,0(%r15),3 ],,
+      [AC_DEFINE(HAVE_AS_VECTOR_LOADSTORE_ALIGNMENT_HINTS_ON_Z13, 1,
+	  [Define if your assembler supports vl/vst/vlm/vstm with an optional alignment hint argument on z13.])])
 
     ;;
 esac
@@ -6838,6 +6853,17 @@ if test "$gcc_cv_no_pie" = "yes"; then
   NO_PIE_FLAG="-no-pie"
 fi
 AC_SUBST([NO_PIE_FLAG])
+
+# Enable Intel CET on Intel CET enabled host if jit is enabled.
+GCC_CET_HOST_FLAGS(CET_HOST_FLAGS)
+case x$enable_languages in
+*jit*)
+  ;;
+*)
+  CET_HOST_FLAGS=
+  ;;
+esac
+AC_SUBST(CET_HOST_FLAGS)
 
 # Check linker supports '-z bndplt'
 ld_bndplt_support=no

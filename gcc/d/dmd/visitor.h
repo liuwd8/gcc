@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2013-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2013-2020 by The D Language Foundation, All Rights Reserved
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
@@ -269,8 +269,7 @@ class UshrExp;
 class AndExp;
 class OrExp;
 class XorExp;
-class OrOrExp;
-class AndAndExp;
+class LogicalExp;
 class CmpExp;
 class InExp;
 class RemoveExp;
@@ -563,8 +562,7 @@ public:
     virtual void visit(AndExp *e) { visit((BinExp *)e); }
     virtual void visit(OrExp *e) { visit((BinExp *)e); }
     virtual void visit(XorExp *e) { visit((BinExp *)e); }
-    virtual void visit(OrOrExp *e) { visit((BinExp *)e); }
-    virtual void visit(AndAndExp *e) { visit((BinExp *)e); }
+    virtual void visit(LogicalExp *e) { visit((BinExp *)e); }
     virtual void visit(CmpExp *e) { visit((BinExp *)e); }
     virtual void visit(InExp *e) { visit((BinExp *)e); }
     virtual void visit(RemoveExp *e) { visit((BinExp *)e); }

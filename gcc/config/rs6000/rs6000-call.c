@@ -172,7 +172,9 @@ static const struct
   { "arch_3_00",	PPC_FEATURE2_ARCH_3_00,		1 },
   { "ieee128",		PPC_FEATURE2_HAS_IEEE128,	1 },
   { "darn",		PPC_FEATURE2_DARN,		1 },
-  { "scv",		PPC_FEATURE2_SCV,		1 }
+  { "scv",		PPC_FEATURE2_SCV,		1 },
+  { "arch_3_1",		PPC_FEATURE2_ARCH_3_1,		1 },
+  { "mma",		PPC_FEATURE2_MMA,		1 },
 };
 
 static void altivec_init_builtins (void);
@@ -237,6 +239,7 @@ builtin_hasher::equal (builtin_hash_struct *p1, builtin_hash_struct *p2)
 #undef RS6000_BUILTIN_1
 #undef RS6000_BUILTIN_2
 #undef RS6000_BUILTIN_3
+#undef RS6000_BUILTIN_4
 #undef RS6000_BUILTIN_A
 #undef RS6000_BUILTIN_D
 #undef RS6000_BUILTIN_H
@@ -253,6 +256,9 @@ builtin_hasher::equal (builtin_hash_struct *p1, builtin_hash_struct *p2)
   { NAME, ICODE, MASK, ATTR },
 
 #define RS6000_BUILTIN_3(ENUM, NAME, MASK, ATTR, ICODE)  \
+  { NAME, ICODE, MASK, ATTR },
+
+#define RS6000_BUILTIN_4(ENUM, NAME, MASK, ATTR, ICODE)  \
   { NAME, ICODE, MASK, ATTR },
 
 #define RS6000_BUILTIN_A(ENUM, NAME, MASK, ATTR, ICODE)  \
@@ -286,6 +292,7 @@ static const struct rs6000_builtin_info_type rs6000_builtin_info[] =
 #undef RS6000_BUILTIN_1
 #undef RS6000_BUILTIN_2
 #undef RS6000_BUILTIN_3
+#undef RS6000_BUILTIN_4
 #undef RS6000_BUILTIN_A
 #undef RS6000_BUILTIN_D
 #undef RS6000_BUILTIN_H
@@ -5505,6 +5512,114 @@ const struct altivec_builtin_types altivec_overloaded_builtins[] = {
     RS6000_BTI_unsigned_V2DI, RS6000_BTI_unsigned_V2DI,
     RS6000_BTI_INTSI, RS6000_BTI_INTSI },
 
+  /* FUTURE overloaded builtin functions, */
+  { FUTURE_BUILTIN_VEC_CLRL, FUTURE_BUILTIN_VCLRLB,
+    RS6000_BTI_V16QI, RS6000_BTI_V16QI, RS6000_BTI_UINTSI, 0 },
+  { FUTURE_BUILTIN_VEC_CLRL, FUTURE_BUILTIN_VCLRLB,
+    RS6000_BTI_unsigned_V16QI, RS6000_BTI_unsigned_V16QI,
+    RS6000_BTI_UINTSI, 0 },
+  { FUTURE_BUILTIN_VEC_CLRR, FUTURE_BUILTIN_VCLRRB,
+    RS6000_BTI_V16QI, RS6000_BTI_V16QI, RS6000_BTI_UINTSI, 0 },
+  { FUTURE_BUILTIN_VEC_CLRR, FUTURE_BUILTIN_VCLRRB,
+    RS6000_BTI_unsigned_V16QI, RS6000_BTI_unsigned_V16QI,
+    RS6000_BTI_UINTSI, 0 },
+
+  { FUTURE_BUILTIN_VEC_GNB, FUTURE_BUILTIN_VGNB, RS6000_BTI_unsigned_long_long,
+    RS6000_BTI_unsigned_V1TI, RS6000_BTI_UINTQI, 0 },
+  { FUTURE_BUILTIN_VEC_XXGENPCVM, FUTURE_BUILTIN_XXGENPCVM_V2DI,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_unsigned_V2DI, RS6000_BTI_INTSI, 0 },
+  { FUTURE_BUILTIN_VEC_XXGENPCVM, FUTURE_BUILTIN_XXGENPCVM_V4SI,
+    RS6000_BTI_unsigned_V4SI, RS6000_BTI_unsigned_V4SI, RS6000_BTI_INTSI, 0 },
+  { FUTURE_BUILTIN_VEC_XXGENPCVM, FUTURE_BUILTIN_XXGENPCVM_V8HI,
+    RS6000_BTI_unsigned_V8HI, RS6000_BTI_unsigned_V8HI, RS6000_BTI_INTSI, 0 },
+  { FUTURE_BUILTIN_VEC_XXGENPCVM, FUTURE_BUILTIN_XXGENPCVM_V16QI,
+    RS6000_BTI_unsigned_V16QI, RS6000_BTI_unsigned_V16QI,
+    RS6000_BTI_INTSI, 0 },
+
+  /* The overloaded XXEVAL definitions are handled specially because the
+     fourth unsigned char operand is not encoded in this table.  */
+  { FUTURE_BUILTIN_VEC_XXEVAL, FUTURE_BUILTIN_XXEVAL,
+    RS6000_BTI_unsigned_V16QI, RS6000_BTI_unsigned_V16QI,
+    RS6000_BTI_unsigned_V16QI, RS6000_BTI_unsigned_V16QI },
+  { FUTURE_BUILTIN_VEC_XXEVAL, FUTURE_BUILTIN_XXEVAL,
+    RS6000_BTI_unsigned_V8HI, RS6000_BTI_unsigned_V8HI,
+    RS6000_BTI_unsigned_V8HI, RS6000_BTI_unsigned_V8HI },
+  { FUTURE_BUILTIN_VEC_XXEVAL, FUTURE_BUILTIN_XXEVAL,
+    RS6000_BTI_unsigned_V4SI, RS6000_BTI_unsigned_V4SI,
+    RS6000_BTI_unsigned_V4SI, RS6000_BTI_unsigned_V4SI },
+  { FUTURE_BUILTIN_VEC_XXEVAL, FUTURE_BUILTIN_XXEVAL,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_unsigned_V2DI,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_unsigned_V2DI },
+  { FUTURE_BUILTIN_VEC_XXEVAL, FUTURE_BUILTIN_XXEVAL,
+    RS6000_BTI_unsigned_V1TI, RS6000_BTI_unsigned_V1TI,
+    RS6000_BTI_unsigned_V1TI, RS6000_BTI_unsigned_V1TI },
+
+  { FUTURE_BUILTIN_VEC_EXTRACTL, FUTURE_BUILTIN_VEXTRACTBL,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_unsigned_V16QI,
+    RS6000_BTI_unsigned_V16QI, RS6000_BTI_UINTQI },
+  { FUTURE_BUILTIN_VEC_EXTRACTL, FUTURE_BUILTIN_VEXTRACTHL,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_unsigned_V8HI,
+    RS6000_BTI_unsigned_V8HI, RS6000_BTI_UINTQI },
+  { FUTURE_BUILTIN_VEC_EXTRACTL, FUTURE_BUILTIN_VEXTRACTWL,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_unsigned_V4SI,
+    RS6000_BTI_unsigned_V4SI, RS6000_BTI_UINTQI },
+  { FUTURE_BUILTIN_VEC_EXTRACTL, FUTURE_BUILTIN_VEXTRACTDL,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_unsigned_V2DI,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_UINTQI },
+
+  { FUTURE_BUILTIN_VEC_EXTRACTH, FUTURE_BUILTIN_VEXTRACTBR,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_unsigned_V16QI,
+    RS6000_BTI_unsigned_V16QI, RS6000_BTI_UINTQI },
+  { FUTURE_BUILTIN_VEC_EXTRACTH, FUTURE_BUILTIN_VEXTRACTHR,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_unsigned_V8HI,
+    RS6000_BTI_unsigned_V8HI, RS6000_BTI_UINTQI },
+  { FUTURE_BUILTIN_VEC_EXTRACTH, FUTURE_BUILTIN_VEXTRACTWR,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_unsigned_V4SI,
+    RS6000_BTI_unsigned_V4SI, RS6000_BTI_UINTQI },
+  { FUTURE_BUILTIN_VEC_EXTRACTH, FUTURE_BUILTIN_VEXTRACTDR,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_unsigned_V2DI,
+    RS6000_BTI_unsigned_V2DI, RS6000_BTI_UINTQI },
+
+  { FUTURE_BUILTIN_VEC_VSTRIL, FUTURE_BUILTIN_VSTRIBL,
+    RS6000_BTI_unsigned_V16QI, RS6000_BTI_unsigned_V16QI, 0, 0 },
+  { FUTURE_BUILTIN_VEC_VSTRIL, FUTURE_BUILTIN_VSTRIBL,
+    RS6000_BTI_V16QI, RS6000_BTI_V16QI, 0, 0 },
+
+  { FUTURE_BUILTIN_VEC_VSTRIL, FUTURE_BUILTIN_VSTRIHL,
+    RS6000_BTI_unsigned_V8HI, RS6000_BTI_unsigned_V8HI, 0, 0 },
+  { FUTURE_BUILTIN_VEC_VSTRIL, FUTURE_BUILTIN_VSTRIHL,
+    RS6000_BTI_V8HI, RS6000_BTI_V8HI, 0, 0 },
+
+  { FUTURE_BUILTIN_VEC_VSTRIL_P, FUTURE_BUILTIN_VSTRIBL_P,
+    RS6000_BTI_INTSI, RS6000_BTI_unsigned_V16QI, 0, 0 },
+  { FUTURE_BUILTIN_VEC_VSTRIL_P, FUTURE_BUILTIN_VSTRIBL_P,
+    RS6000_BTI_INTSI, RS6000_BTI_V16QI, 0, 0 },
+
+  { FUTURE_BUILTIN_VEC_VSTRIL_P, FUTURE_BUILTIN_VSTRIHL_P,
+    RS6000_BTI_INTSI, RS6000_BTI_unsigned_V8HI, 0, 0 },
+  { FUTURE_BUILTIN_VEC_VSTRIL_P, FUTURE_BUILTIN_VSTRIHL_P,
+    RS6000_BTI_INTSI, RS6000_BTI_V8HI, 0, 0 },
+
+  { FUTURE_BUILTIN_VEC_VSTRIR, FUTURE_BUILTIN_VSTRIBR,
+    RS6000_BTI_unsigned_V16QI, RS6000_BTI_unsigned_V16QI, 0, 0 },
+  { FUTURE_BUILTIN_VEC_VSTRIR, FUTURE_BUILTIN_VSTRIBR,
+    RS6000_BTI_V16QI, RS6000_BTI_V16QI, 0, 0 },
+
+  { FUTURE_BUILTIN_VEC_VSTRIR, FUTURE_BUILTIN_VSTRIHR,
+    RS6000_BTI_unsigned_V8HI, RS6000_BTI_unsigned_V8HI, 0, 0 },
+  { FUTURE_BUILTIN_VEC_VSTRIR, FUTURE_BUILTIN_VSTRIHR,
+    RS6000_BTI_V8HI, RS6000_BTI_V8HI, 0, 0 },
+
+  { FUTURE_BUILTIN_VEC_VSTRIR_P, FUTURE_BUILTIN_VSTRIBR_P,
+    RS6000_BTI_INTSI, RS6000_BTI_unsigned_V16QI, 0, 0 },
+  { FUTURE_BUILTIN_VEC_VSTRIR_P, FUTURE_BUILTIN_VSTRIBR_P,
+    RS6000_BTI_INTSI, RS6000_BTI_V16QI, 0, 0 },
+
+  { FUTURE_BUILTIN_VEC_VSTRIR_P, FUTURE_BUILTIN_VSTRIHR_P,
+    RS6000_BTI_INTSI, RS6000_BTI_unsigned_V8HI, 0, 0 },
+  { FUTURE_BUILTIN_VEC_VSTRIR_P, FUTURE_BUILTIN_VSTRIHR_P,
+    RS6000_BTI_INTSI, RS6000_BTI_V8HI, 0, 0 },
+
   { RS6000_BUILTIN_NONE, RS6000_BUILTIN_NONE, 0, 0, 0, 0 }
 };
 
@@ -5748,8 +5863,8 @@ rs6000_discover_homogeneous_aggregate (machine_mode mode, const_tree type,
 		  unsigned uid = TYPE_UID (TYPE_MAIN_VARIANT (type));
 		  if (uid != last_reported_type_uid)
 		    {
-		      char *url
-			= get_changes_url ("gcc-10/changes.html#empty_base");
+		      const char *url
+			= CHANGES_ROOT_URL "gcc-10/changes.html#empty_base";
 		      if (empty_base_seen & 1)
 			inform (input_location,
 				"parameter passing for argument of type %qT "
@@ -5761,7 +5876,6 @@ rs6000_discover_homogeneous_aggregate (machine_mode mode, const_tree type,
 				"with %<[[no_unique_address]]%> members "
 				"changed %{in GCC 10.1%}", type, url);
 		      last_reported_type_uid = uid;
-		      free (url);
 		    }
 		}
 	      return true;
@@ -8254,6 +8368,7 @@ def_builtin (const char *name, tree type, enum rs6000_builtins code)
 #undef RS6000_BUILTIN_1
 #undef RS6000_BUILTIN_2
 #undef RS6000_BUILTIN_3
+#undef RS6000_BUILTIN_4
 #undef RS6000_BUILTIN_A
 #undef RS6000_BUILTIN_D
 #undef RS6000_BUILTIN_H
@@ -8266,6 +8381,7 @@ def_builtin (const char *name, tree type, enum rs6000_builtins code)
 #define RS6000_BUILTIN_3(ENUM, NAME, MASK, ATTR, ICODE) \
   { MASK, ICODE, NAME, ENUM },
 
+#define RS6000_BUILTIN_4(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_A(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_D(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_H(ENUM, NAME, MASK, ATTR, ICODE)
@@ -8277,12 +8393,13 @@ static const struct builtin_description bdesc_3arg[] =
 #include "rs6000-builtin.def"
 };
 
-/* DST operations: void foo (void *, const int, const char).  */
+/* Simple quaternary operations: VECd = foo (VECa, VECb, VECc, VECd).  */
 
 #undef RS6000_BUILTIN_0
 #undef RS6000_BUILTIN_1
 #undef RS6000_BUILTIN_2
 #undef RS6000_BUILTIN_3
+#undef RS6000_BUILTIN_4
 #undef RS6000_BUILTIN_A
 #undef RS6000_BUILTIN_D
 #undef RS6000_BUILTIN_H
@@ -8293,6 +8410,38 @@ static const struct builtin_description bdesc_3arg[] =
 #define RS6000_BUILTIN_1(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_2(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_3(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_4(ENUM, NAME, MASK, ATTR, ICODE) \
+  { MASK, ICODE, NAME, ENUM },
+
+#define RS6000_BUILTIN_A(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_D(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_H(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_P(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_X(ENUM, NAME, MASK, ATTR, ICODE)
+
+static const struct builtin_description bdesc_4arg[] =
+{
+#include "rs6000-builtin.def"
+};
+
+/* DST operations: void foo (void *, const int, const char).  */
+
+#undef RS6000_BUILTIN_0
+#undef RS6000_BUILTIN_1
+#undef RS6000_BUILTIN_2
+#undef RS6000_BUILTIN_3
+#undef RS6000_BUILTIN_4
+#undef RS6000_BUILTIN_A
+#undef RS6000_BUILTIN_D
+#undef RS6000_BUILTIN_H
+#undef RS6000_BUILTIN_P
+#undef RS6000_BUILTIN_X
+
+#define RS6000_BUILTIN_0(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_1(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_2(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_3(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_4(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_A(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_D(ENUM, NAME, MASK, ATTR, ICODE) \
   { MASK, ICODE, NAME, ENUM },
@@ -8312,6 +8461,7 @@ static const struct builtin_description bdesc_dst[] =
 #undef RS6000_BUILTIN_1
 #undef RS6000_BUILTIN_2
 #undef RS6000_BUILTIN_3
+#undef RS6000_BUILTIN_4
 #undef RS6000_BUILTIN_A
 #undef RS6000_BUILTIN_D
 #undef RS6000_BUILTIN_H
@@ -8324,6 +8474,7 @@ static const struct builtin_description bdesc_dst[] =
   { MASK, ICODE, NAME, ENUM },
 
 #define RS6000_BUILTIN_3(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_4(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_A(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_D(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_H(ENUM, NAME, MASK, ATTR, ICODE)
@@ -8339,6 +8490,7 @@ static const struct builtin_description bdesc_2arg[] =
 #undef RS6000_BUILTIN_1
 #undef RS6000_BUILTIN_2
 #undef RS6000_BUILTIN_3
+#undef RS6000_BUILTIN_4
 #undef RS6000_BUILTIN_A
 #undef RS6000_BUILTIN_D
 #undef RS6000_BUILTIN_H
@@ -8349,6 +8501,7 @@ static const struct builtin_description bdesc_2arg[] =
 #define RS6000_BUILTIN_1(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_2(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_3(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_4(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_A(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_D(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_H(ENUM, NAME, MASK, ATTR, ICODE)
@@ -8370,6 +8523,7 @@ static const struct builtin_description bdesc_altivec_preds[] =
 #undef RS6000_BUILTIN_1
 #undef RS6000_BUILTIN_2
 #undef RS6000_BUILTIN_3
+#undef RS6000_BUILTIN_4
 #undef RS6000_BUILTIN_A
 #undef RS6000_BUILTIN_D
 #undef RS6000_BUILTIN_H
@@ -8380,6 +8534,7 @@ static const struct builtin_description bdesc_altivec_preds[] =
 #define RS6000_BUILTIN_1(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_2(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_3(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_4(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_A(ENUM, NAME, MASK, ATTR, ICODE) \
   { MASK, ICODE, NAME, ENUM },
 
@@ -8400,6 +8555,7 @@ static const struct builtin_description bdesc_abs[] =
 #undef RS6000_BUILTIN_1
 #undef RS6000_BUILTIN_2
 #undef RS6000_BUILTIN_3
+#undef RS6000_BUILTIN_4
 #undef RS6000_BUILTIN_A
 #undef RS6000_BUILTIN_D
 #undef RS6000_BUILTIN_H
@@ -8412,6 +8568,7 @@ static const struct builtin_description bdesc_abs[] =
 
 #define RS6000_BUILTIN_2(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_3(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_4(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_A(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_D(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_H(ENUM, NAME, MASK, ATTR, ICODE)
@@ -8429,6 +8586,7 @@ static const struct builtin_description bdesc_1arg[] =
 #undef RS6000_BUILTIN_1
 #undef RS6000_BUILTIN_2
 #undef RS6000_BUILTIN_3
+#undef RS6000_BUILTIN_4
 #undef RS6000_BUILTIN_A
 #undef RS6000_BUILTIN_D
 #undef RS6000_BUILTIN_H
@@ -8441,6 +8599,7 @@ static const struct builtin_description bdesc_1arg[] =
 #define RS6000_BUILTIN_1(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_2(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_3(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_4(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_A(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_D(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_H(ENUM, NAME, MASK, ATTR, ICODE)
@@ -8457,6 +8616,7 @@ static const struct builtin_description bdesc_0arg[] =
 #undef RS6000_BUILTIN_1
 #undef RS6000_BUILTIN_2
 #undef RS6000_BUILTIN_3
+#undef RS6000_BUILTIN_4
 #undef RS6000_BUILTIN_A
 #undef RS6000_BUILTIN_D
 #undef RS6000_BUILTIN_H
@@ -8467,6 +8627,7 @@ static const struct builtin_description bdesc_0arg[] =
 #define RS6000_BUILTIN_1(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_2(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_3(ENUM, NAME, MASK, ATTR, ICODE)
+#define RS6000_BUILTIN_4(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_A(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_D(ENUM, NAME, MASK, ATTR, ICODE)
 #define RS6000_BUILTIN_H(ENUM, NAME, MASK, ATTR, ICODE) \
@@ -8484,6 +8645,7 @@ static const struct builtin_description bdesc_htm[] =
 #undef RS6000_BUILTIN_1
 #undef RS6000_BUILTIN_2
 #undef RS6000_BUILTIN_3
+#undef RS6000_BUILTIN_4
 #undef RS6000_BUILTIN_A
 #undef RS6000_BUILTIN_D
 #undef RS6000_BUILTIN_H
@@ -8827,6 +8989,20 @@ rs6000_expand_binop_builtin (enum insn_code icode, tree exp, rtx target)
 	  || TREE_INT_CST_LOW (arg1) & ~3)
 	{
 	  error ("argument 2 must be a 2-bit unsigned literal");
+	  return CONST0_RTX (tmode);
+	}
+    }
+  else if (icode == CODE_FOR_vgnb)
+    {
+      /* Only allow unsigned literals in range 2..7.  */
+      /* Note that arg1 is second operand.  */
+      STRIP_NOPS (arg1);
+      if (TREE_CODE (arg1) != INTEGER_CST
+	  || (TREE_INT_CST_LOW (arg1) & ~7)
+	  || !IN_RANGE (TREE_INT_CST_LOW (arg1), 2, 7))
+	{
+	  error ("argument 2 must be unsigned literal between "
+		 "2 and 7 inclusive");
 	  return CONST0_RTX (tmode);
 	}
     }
@@ -9369,6 +9545,8 @@ htm_expand_builtin (tree exp, rtx target, bool * expandedp)
 	      expected_nopnds = 2;
 	    else if ((attr & RS6000_BTC_TYPE_MASK) == RS6000_BTC_TERNARY)
 	      expected_nopnds = 3;
+	    else if ((attr & RS6000_BTC_TYPE_MASK) == RS6000_BTC_QUATERNARY)
+	      expected_nopnds = 4;
 	    if (!(attr & RS6000_BTC_VOID))
 	      expected_nopnds += 1;
 	    if (uses_spr)
@@ -9541,6 +9719,76 @@ cpu_expand_builtin (enum rs6000_builtins fcode, tree exp ATTRIBUTE_UNUSED,
   /* For old LIBCs, always return FALSE.  */
   emit_move_insn (target, GEN_INT (0));
 #endif /* TARGET_LIBC_PROVIDES_HWCAP_IN_TCB */
+
+  return target;
+}
+
+static rtx
+rs6000_expand_quaternop_builtin (enum insn_code icode, tree exp, rtx target)
+{
+  rtx pat;
+  tree arg0 = CALL_EXPR_ARG (exp, 0);
+  tree arg1 = CALL_EXPR_ARG (exp, 1);
+  tree arg2 = CALL_EXPR_ARG (exp, 2);
+  tree arg3 = CALL_EXPR_ARG (exp, 3);
+  rtx op0 = expand_normal (arg0);
+  rtx op1 = expand_normal (arg1);
+  rtx op2 = expand_normal (arg2);
+  rtx op3 = expand_normal (arg3);
+  machine_mode tmode = insn_data[icode].operand[0].mode;
+  machine_mode mode0 = insn_data[icode].operand[1].mode;
+  machine_mode mode1 = insn_data[icode].operand[2].mode;
+  machine_mode mode2 = insn_data[icode].operand[3].mode;
+  machine_mode mode3 = insn_data[icode].operand[4].mode;
+
+  if (icode == CODE_FOR_nothing)
+    /* Builtin not supported on this processor.  */
+    return 0;
+
+  /* If we got invalid arguments bail out before generating bad rtl.  */
+  if (arg0 == error_mark_node
+      || arg1 == error_mark_node
+      || arg2 == error_mark_node
+      || arg3 == error_mark_node)
+    return const0_rtx;
+
+  /* Check and prepare argument depending on the instruction code.
+
+     Note that a switch statement instead of the sequence of tests
+     would be incorrect as many of the CODE_FOR values could be
+     CODE_FOR_nothing and that would yield multiple alternatives
+     with identical values.  We'd never reach here at runtime in
+     this case.  */
+  if (icode == CODE_FOR_xxeval)
+    {
+      /* Only allow 8-bit unsigned literals.  */
+      STRIP_NOPS (arg3);
+      if (TREE_CODE (arg3) != INTEGER_CST
+	  || TREE_INT_CST_LOW (arg3) & ~0xff)
+	{
+	  error ("argument 4 must be an 8-bit unsigned literal");
+	  return CONST0_RTX (tmode);
+	}
+    }
+
+  if (target == 0
+      || GET_MODE (target) != tmode
+      || ! (*insn_data[icode].operand[0].predicate) (target, tmode))
+    target = gen_reg_rtx (tmode);
+
+  if (! (*insn_data[icode].operand[1].predicate) (op0, mode0))
+    op0 = copy_to_mode_reg (mode0, op0);
+  if (! (*insn_data[icode].operand[2].predicate) (op1, mode1))
+    op1 = copy_to_mode_reg (mode1, op1);
+  if (! (*insn_data[icode].operand[3].predicate) (op2, mode2))
+    op2 = copy_to_mode_reg (mode2, op2);
+  if (! (*insn_data[icode].operand[4].predicate) (op3, mode3))
+    op3 = copy_to_mode_reg (mode3, op3);
+
+  pat = GEN_FCN (icode) (target, op0, op1, op2, op3);
+  if (! pat)
+    return 0;
+  emit_insn (pat);
 
   return target;
 }
@@ -10165,6 +10413,24 @@ altivec_expand_builtin (tree exp, rtx target, bool *expandedp)
 	}
       break;
 
+    case FUTURE_BUILTIN_VEC_XXGENPCVM:
+      arg1 = CALL_EXPR_ARG (exp, 1);
+      STRIP_NOPS (arg1);
+
+      /* Generate a normal call if it is invalid.  */
+      if (arg1 == error_mark_node)
+	return expand_call (exp, target, false);
+
+      if (TREE_CODE (arg1) != INTEGER_CST
+	  || !IN_RANGE (TREE_INT_CST_LOW (arg1), 0, 3))
+	{
+	  size_t uns_fcode = (size_t) fcode;
+	  const char *name = rs6000_builtin_info[uns_fcode].name;
+	  error ("Second argument of %qs must be in the range [0, 3].", name);
+	  return expand_call (exp, target, false);
+	}
+      break;
+
     default:
       break;
       /* Fall through.  */
@@ -10448,16 +10714,19 @@ rs6000_builtin_valid_without_lhs (enum rs6000_builtins fn_code)
    operation.  This sets up true/false vectors, and uses the
    VEC_COND_EXPR operation.
    CODE indicates which comparison is to be made. (EQ, GT, ...).
-   TYPE indicates the type of the result.  */
+   TYPE indicates the type of the result.
+   Code is inserted before GSI.  */
 static tree
-fold_build_vec_cmp (tree_code code, tree type,
-		    tree arg0, tree arg1)
+fold_build_vec_cmp (tree_code code, tree type, tree arg0, tree arg1,
+		    gimple_stmt_iterator *gsi)
 {
   tree cmp_type = truth_type_for (type);
   tree zero_vec = build_zero_cst (type);
   tree minus_one_vec = build_minus_one_cst (type);
-  tree cmp = fold_build2 (code, cmp_type, arg0, arg1);
-  return fold_build3 (VEC_COND_EXPR, type, cmp, minus_one_vec, zero_vec);
+  tree temp = create_tmp_reg_or_ssa_name (cmp_type);
+  gimple *g = gimple_build_assign (temp, code, arg0, arg1);
+  gsi_insert_before (gsi, g, GSI_SAME_STMT);
+  return fold_build3 (VEC_COND_EXPR, type, temp, minus_one_vec, zero_vec);
 }
 
 /* Helper function to handle the in-between steps for the
@@ -10468,7 +10737,7 @@ fold_compare_helper (gimple_stmt_iterator *gsi, tree_code code, gimple *stmt)
   tree arg0 = gimple_call_arg (stmt, 0);
   tree arg1 = gimple_call_arg (stmt, 1);
   tree lhs = gimple_call_lhs (stmt);
-  tree cmp = fold_build_vec_cmp (code, TREE_TYPE (lhs), arg0, arg1);
+  tree cmp = fold_build_vec_cmp (code, TREE_TYPE (lhs), arg0, arg1, gsi);
   gimple *g = gimple_build_assign (lhs, cmp);
   gimple_set_location (g, gimple_location (stmt));
   gsi_replace (gsi, g, true);
@@ -11578,6 +11847,7 @@ rs6000_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 	case RS6000_BTC_UNARY:	   name3 = "unary";	break;
 	case RS6000_BTC_BINARY:	   name3 = "binary";	break;
 	case RS6000_BTC_TERNARY:   name3 = "ternary";	break;
+	case RS6000_BTC_QUATERNARY:name3 = "quaternary";break;
 	case RS6000_BTC_PREDICATE: name3 = "predicate";	break;
 	case RS6000_BTC_ABS:	   name3 = "abs";	break;
 	case RS6000_BTC_DST:	   name3 = "dst";	break;
@@ -11760,6 +12030,7 @@ rs6000_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
   gcc_assert (attr == RS6000_BTC_UNARY
 	      || attr == RS6000_BTC_BINARY
 	      || attr == RS6000_BTC_TERNARY
+	      || attr == RS6000_BTC_QUATERNARY
 	      || attr == RS6000_BTC_SPECIAL);
   
   /* Handle simple unary operations.  */
@@ -11779,6 +12050,12 @@ rs6000_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
   for (i = 0; i < ARRAY_SIZE  (bdesc_3arg); i++, d++)
     if (d->code == fcode)
       return rs6000_expand_ternop_builtin (icode, exp, target);
+
+  /* Handle simple quaternary operations.  */
+  d = bdesc_4arg;
+  for (i = 0; i < ARRAY_SIZE  (bdesc_4arg); i++, d++)
+    if (d->code == fcode)
+      return rs6000_expand_quaternop_builtin (icode, exp, target);
 
   /* Handle simple no-argument operations. */
   d = bdesc_0arg;
@@ -11934,7 +12211,9 @@ rs6000_init_builtins (void)
   /* Initialize the modes for builtin_function_type, mapping a machine mode to
      tree type node.  */
   builtin_mode_to_type[QImode][0] = integer_type_node;
+  builtin_mode_to_type[QImode][1] = unsigned_intSI_type_node;
   builtin_mode_to_type[HImode][0] = integer_type_node;
+  builtin_mode_to_type[HImode][1] = unsigned_intSI_type_node;
   builtin_mode_to_type[SImode][0] = intSI_type_node;
   builtin_mode_to_type[SImode][1] = unsigned_intSI_type_node;
   builtin_mode_to_type[DImode][0] = intDI_type_node;
@@ -12071,10 +12350,28 @@ rs6000_init_builtins (void)
   def_builtin ("__builtin_cpu_is", ftype, RS6000_BUILTIN_CPU_IS);
   def_builtin ("__builtin_cpu_supports", ftype, RS6000_BUILTIN_CPU_SUPPORTS);
 
-  /* AIX libm provides clog as __clog.  */
-  if (TARGET_XCOFF &&
-      (tdecl = builtin_decl_explicit (BUILT_IN_CLOG)) != NULL_TREE)
-    set_user_assembler_name (tdecl, "__clog");
+  if (TARGET_XCOFF)
+    {
+      /* AIX libm provides clog as __clog.  */
+      if ((tdecl = builtin_decl_explicit (BUILT_IN_CLOG)) != NULL_TREE)
+	set_user_assembler_name (tdecl, "__clog");
+
+      /* When long double is 64 bit, some long double builtins of libc
+	 functions (like __builtin_frexpl) must call the double version
+	 (frexp) not the long double version (frexpl) that expects a 128 bit
+	 argument.  */
+      if (! TARGET_LONG_DOUBLE_128)
+	{
+	  if ((tdecl = builtin_decl_explicit (BUILT_IN_FMODL)) != NULL_TREE)
+	    set_user_assembler_name (tdecl, "fmod");
+	  if ((tdecl = builtin_decl_explicit (BUILT_IN_FREXPL)) != NULL_TREE)
+	    set_user_assembler_name (tdecl, "frexp");
+	  if ((tdecl = builtin_decl_explicit (BUILT_IN_LDEXPL)) != NULL_TREE)
+	    set_user_assembler_name (tdecl, "ldexp");
+	  if ((tdecl = builtin_decl_explicit (BUILT_IN_MODFL)) != NULL_TREE)
+	    set_user_assembler_name (tdecl, "modf");
+	}
+    }
 
 #ifdef SUBTARGET_INIT_BUILTINS
   SUBTARGET_INIT_BUILTINS;
@@ -12797,6 +13094,46 @@ htm_init_builtins (void)
     }
 }
 
+/* Map types for builtin functions with an explicit return type and
+   exactly 4 arguments.  Functions with fewer than 3 arguments use
+   builtin_function_type.  The number of quaternary built-in
+   functions is very small.  Handle each case specially.  */
+static tree
+builtin_quaternary_function_type (machine_mode mode_ret,
+				  machine_mode mode_arg0,
+				  machine_mode mode_arg1,
+				  machine_mode mode_arg2,
+				  machine_mode mode_arg3,
+				  enum rs6000_builtins builtin)
+{
+  tree function_type = NULL;
+
+  static tree v2udi_type = builtin_mode_to_type[V2DImode][1];
+  static tree uchar_type = builtin_mode_to_type[QImode][1];
+
+  static tree xxeval_type =
+    build_function_type_list (v2udi_type, v2udi_type, v2udi_type,
+			      v2udi_type, uchar_type, NULL_TREE);
+
+  switch (builtin) {
+
+  case FUTURE_BUILTIN_XXEVAL:
+    gcc_assert ((mode_ret == V2DImode)
+		&& (mode_arg0 == V2DImode)
+		&& (mode_arg1 == V2DImode)
+		&& (mode_arg2 == V2DImode)
+		&& (mode_arg3 == QImode));
+    function_type = xxeval_type;
+    break;
+
+  default:
+    /* A case for each quaternary built-in must be provided above.  */
+    gcc_unreachable ();
+  }
+
+  return function_type;
+}
+
 /* Map types for builtin functions with an explicit return type and up to 3
    arguments.  Functions with fewer than 3 arguments use VOIDmode as the type
    of the argument.  */
@@ -12909,6 +13246,16 @@ builtin_function_type (machine_mode mode_ret, machine_mode mode_arg0,
     case P8V_BUILTIN_ORC_V4SI_UNS:
     case P8V_BUILTIN_ORC_V2DI_UNS:
     case P8V_BUILTIN_ORC_V1TI_UNS:
+    case FUTURE_BUILTIN_VCFUGED:
+    case FUTURE_BUILTIN_VCLZDM:
+    case FUTURE_BUILTIN_VCTZDM:
+    case FUTURE_BUILTIN_VGNB:
+    case FUTURE_BUILTIN_VPDEPD:
+    case FUTURE_BUILTIN_VPEXTD:
+    case FUTURE_BUILTIN_XXGENPCVM_V16QI:
+    case FUTURE_BUILTIN_XXGENPCVM_V8HI:
+    case FUTURE_BUILTIN_XXGENPCVM_V4SI:
+    case FUTURE_BUILTIN_XXGENPCVM_V2DI:
       h.uns_p[0] = 1;
       h.uns_p[1] = 1;
       h.uns_p[2] = 1;
@@ -12939,6 +13286,14 @@ builtin_function_type (machine_mode mode_ret, machine_mode mode_arg0,
     case CRYPTO_BUILTIN_VSHASIGMAW:
     case CRYPTO_BUILTIN_VSHASIGMAD:
     case CRYPTO_BUILTIN_VSHASIGMA:
+    case FUTURE_BUILTIN_VEXTRACTBL:
+    case FUTURE_BUILTIN_VEXTRACTHL:
+    case FUTURE_BUILTIN_VEXTRACTWL:
+    case FUTURE_BUILTIN_VEXTRACTDL:
+    case FUTURE_BUILTIN_VEXTRACTBR:
+    case FUTURE_BUILTIN_VEXTRACTHR:
+    case FUTURE_BUILTIN_VEXTRACTWR:
+    case FUTURE_BUILTIN_VEXTRACTDR:
       h.uns_p[0] = 1;
       h.uns_p[1] = 1;
       h.uns_p[2] = 1;
@@ -13077,6 +13432,7 @@ rs6000_common_init_builtins (void)
   tree opaque_ftype_opaque = NULL_TREE;
   tree opaque_ftype_opaque_opaque = NULL_TREE;
   tree opaque_ftype_opaque_opaque_opaque = NULL_TREE;
+  tree opaque_ftype_opaque_opaque_opaque_opaque = NULL_TREE;
   HOST_WIDE_INT builtin_mask = rs6000_builtin_mask;
 
   /* Create Altivec and VSX builtins on machines with at least the
@@ -13085,6 +13441,63 @@ rs6000_common_init_builtins (void)
 
   if (TARGET_EXTRA_BUILTINS)
     builtin_mask |= RS6000_BTM_COMMON;
+
+  /* Add the quaternary operators.  */
+  d = bdesc_4arg;
+  for (i = 0; i < ARRAY_SIZE (bdesc_4arg); i++, d++)
+    {
+      tree type;
+      HOST_WIDE_INT mask = d->mask;
+
+      if ((mask & builtin_mask) != mask)
+	{
+	  if (TARGET_DEBUG_BUILTIN)
+	    fprintf (stderr, "rs6000_builtin, skip quaternary %s\n", d->name);
+	  continue;
+	}
+
+      if (rs6000_overloaded_builtin_p (d->code))
+	{
+	  type = opaque_ftype_opaque_opaque_opaque_opaque;
+	  if (!type)
+	    type = opaque_ftype_opaque_opaque_opaque_opaque
+	      = build_function_type_list (opaque_V4SI_type_node,
+					  opaque_V4SI_type_node,
+					  opaque_V4SI_type_node,
+					  opaque_V4SI_type_node,
+					  opaque_V4SI_type_node,
+					  NULL_TREE);
+	}
+      else
+	{
+	  enum insn_code icode = d->icode;
+	  if (d->name == 0)
+	    {
+	      if (TARGET_DEBUG_BUILTIN)
+		fprintf (stderr, "rs6000_builtin, bdesc_4arg[%ld] no name\n",
+			 (long) i);
+	      continue;
+	    }
+
+	  if (icode == CODE_FOR_nothing)
+	    {
+	      if (TARGET_DEBUG_BUILTIN)
+		fprintf (stderr,
+			 "rs6000_builtin, skip quaternary %s (no code)\n",
+			 d->name);
+	      continue;
+	    }
+
+	  type =
+	    builtin_quaternary_function_type (insn_data[icode].operand[0].mode,
+					      insn_data[icode].operand[1].mode,
+					      insn_data[icode].operand[2].mode,
+					      insn_data[icode].operand[3].mode,
+					      insn_data[icode].operand[4].mode,
+					      d->code);
+	}
+      def_builtin (d->name, type, d->code);
+    }
 
   /* Add the ternary operators.  */
   d = bdesc_3arg;

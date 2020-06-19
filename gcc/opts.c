@@ -845,30 +845,6 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set,
 	/* We have a DUMP_DIR_NAME, prepend that.  */
 	opts->x_dump_base_name = opts_concat (opts->x_dump_dir_name,
 					      opts->x_dump_base_name, NULL);
-      else if (opts->x_aux_base_name
-	       && strcmp (opts->x_aux_base_name, HOST_BIT_BUCKET) != 0)
-	/* AUX_BASE_NAME is set and is not the bit bucket.  If it
-	   contains a directory component, prepend those directories.
-	   Typically this places things in the same directory as the
-	   object file.  */
-	{
-	  const char *aux_base;
-
-	  base_of_path (opts->x_aux_base_name, &aux_base);
-	  if (opts->x_aux_base_name != aux_base)
-	    {
-	      int dir_len = aux_base - opts->x_aux_base_name;
-	      char *new_dump_base_name
-		= XOBNEWVEC (&opts_obstack, char,
-			     strlen (opts->x_dump_base_name) + dir_len + 1);
-
-	      /* Copy directory component from OPTS->X_AUX_BASE_NAME.  */
-	      memcpy (new_dump_base_name, opts->x_aux_base_name, dir_len);
-	      /* Append existing OPTS->X_DUMP_BASE_NAME.  */
-	      strcpy (new_dump_base_name + dir_len, opts->x_dump_base_name);
-	      opts->x_dump_base_name = new_dump_base_name;
-	    }
-	}
 
       /* It is definitely prefixed now.  */
       opts->x_dump_base_name_prefixed = true;
@@ -2346,17 +2322,6 @@ common_handle_option (struct gcc_options *opts,
       opts->x_flag_gen_aux_info = 1;
       break;
 
-    case OPT_auxbase_strip:
-      {
-	char *tmp = xstrdup (arg);
-	strip_off_ending (tmp, strlen (tmp));
-	if (tmp[0])
-	  opts->x_aux_base_name = tmp;
-	else
-	  free (tmp);
-      }
-      break;
-
     case OPT_d:
       decode_d_option (arg, opts, loc, dc);
       break;
@@ -2615,10 +2580,12 @@ common_handle_option (struct gcc_options *opts,
 	    function_entry_patch_area_start = 0;
 	  }
 	if (function_entry_patch_area_size < 0
+	    || function_entry_patch_area_size > USHRT_MAX
 	    || function_entry_patch_area_start < 0
+	    || function_entry_patch_area_start > USHRT_MAX
 	    || function_entry_patch_area_size 
 		< function_entry_patch_area_start)
-	  error ("invalid arguments for %<-fpatchable_function_entry%>");
+	  error ("invalid arguments for %<-fpatchable-function-entry%>");
 	free (patch_area_arg);
       }
       break;
@@ -3141,25 +3108,15 @@ get_option_html_page (int option_index)
     return "gcc/Static-Analyzer-Options.html";
 
 #ifdef CL_Fortran
-  if (cl_opt->flags & CL_Fortran)
-    {
-      switch (option_index)
-	{
-	default:
-	  /* Most Fortran warnings are documented on this page.  */
-	  return "gfortran/Error-and-Warning-Options.html";
-
-	case OPT_Wdate_time:
-	case OPT_Wconversion:
-	case OPT_Wconversion_extra:
-	case OPT_Wmissing_include_dirs:
-	case OPT_Wopenmp_simd:
-	  /* These warnings are marked in fortran/lang.opt as
-	     "Documented in C" and thus use the common
-	     Warning-Options page below.  */
-	  break;
-	}
-    }
+  if ((cl_opt->flags & CL_Fortran) != 0
+      /* If it is option common to both C/C++ and Fortran, it is documented
+	 in gcc/ rather than gfortran/ docs.  */
+      && (cl_opt->flags & CL_C) == 0
+#ifdef CL_CXX
+      && (cl_opt->flags & CL_CXX) == 0
+#endif
+     )
+    return "gfortran/Error-and-Warning-Options.html";
 #endif
 
   return "gcc/Warning-Options.html";
@@ -3188,16 +3145,6 @@ get_option_url (diagnostic_context *, int option_index)
 		   NULL);
   else
     return NULL;
-}
-
-/* Given "gcc-10/changes.html#foobar", return that URL under
-   CHANGES_ROOT_URL (see --with-changes-root-url).
-   The caller is responsible for freeing the returned string.  */
-
-char *
-get_changes_url (const char *str)
-{
-  return concat (CHANGES_ROOT_URL, str, NULL);
 }
 
 #if CHECKING_P
